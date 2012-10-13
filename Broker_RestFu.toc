@@ -1,0 +1,20 @@
+## Interface: 50001
+## Title: Broker: RestFu
+## Notes: Keeps track of time played and rested XP across your characters.
+## Notes-zhTW: 可顯示目前伺服器上所有角色休息(兩倍經驗值)狀態、下線地點與剩餘休息時間等。
+## Notes-ruRU: Отслеживает количество бонусного опыта за отдых у всех ваших персонажей.
+## Author: phyber
+## Depends: XPBarNone
+## OptionalDeps: Ace3
+## SavedVariables: Broker_RestFuDB
+## Version: @project-version@
+## X-Category: Interface Enhancements
+## X-Embeds: Ace3, Libabacus-3.0, LibCrayon-3.0
+
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
+
+Locales\locales.xml
+
+RestFu.lua
