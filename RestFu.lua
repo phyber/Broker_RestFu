@@ -1,19 +1,30 @@
 local LDB = LibStub:GetLibrary("LibDataBroker-1.1")
 local LQT = LibStub("LibQTip-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("Broker_RestFu")
+local abacus = LibStub("LibAbacus-3.0")
+local crayon = LibStub("LibCrayon-3.0")
 local dataobj = LDB:NewDataObject("Broker_RestFu", {
 	type = "data source",
 	text = "RestFu",
 	icon = "Interface\\AddOns\\Broker_RestFu\\icon.tga",
 })
 local icon = LibStub("LibDBIcon-1.0")
-
+local time = time
 local pairs = pairs
 local ipairs = ipairs
 local string_format = string.format
 local table_insert = table.insert
 local table_sort = table.sort
-
+local GetRealmName = GetRealmName
+local GetRealZoneText = GetRealZoneText
+local GetXPExhaustion = GetXPExhaustion
+local IsResting = IsResting
+local UnitXP = UnitXP
+local UnitClass = UnitClass
+local UnitLevel = UnitLevel
+local UnixXPMax = UnitXPMax
+local UnitFactionGroup = UnitFactionGroup
+local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local maxLevel = MAX_PLAYER_LEVEL_TABLE[GetAccountExpansionLevel()]
 local timerSched = {}
 
@@ -100,6 +111,9 @@ function Broker_RestFu:Save()
 		t.restXP = GetXPExhaustion() or 0
 		t.isResting = IsResting() and true or false
 		t.zone = zone
+		t.faction = UnitFactionGroup("player")
+		t.realm = GetRealmName()
+		t.time = time()
 
 		if self.timePlayed then
 			t.timePlayed = self.timePlayed + time() - self.timePlayedMsgTime
@@ -107,9 +121,6 @@ function Broker_RestFu:Save()
 			t.timePlayed = 0
 		end
 
-		t.faction = UnitFactionGroup("player")
-		t.realm = GetRealmName()
-		t.time = time()
 		t.lastPlayed = time()
 	end
 end
