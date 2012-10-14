@@ -160,6 +160,7 @@ function Broker_RestFu:TIME_PLAYED_MSG(event, totaltime, leveltime)
 end
 
 local percentPerSecond = 0.05 / 28800
+local pandaPercentPerSecond = 0.1 / 28800
 function Broker_RestFu:UpdateRestXPData(realm, char)
 	if not realm or not char then
 		return
@@ -168,7 +169,12 @@ function Broker_RestFu:UpdateRestXPData(realm, char)
 	local t = self.db.global[realm][char]
 	if t.level ~= maxLevel and t.restXP < t.nextXP * 1.5 then
 		local seconds = now - t.time
-		local gained = t.nextXP * percentPerSecond * seconds
+		local gained
+		if t.localrace == "Pandaren" then
+			gained = t.nextXP * pandaPercentPerSecond * seconds
+		else
+			gained = t.nextXP * percentPerSecond * seconds
+		end
 		if not t.isResting then
 			gained = gained / 4
 		end
@@ -249,7 +255,12 @@ function Broker_RestFu:DrawTooltip()
 
 			if t.level ~= maxLevel then
 				local r, g, b = crayon:GetThresholdColor(t.restXP / t.nextXP, 0, 0.5, 1, 1.25, 1.5)
-				local timePassed = t.restXP / t.nextXP / percentPerSecond
+				local timePassed
+				if t.localrace == "Pandaren" then
+					timePassed = t.restXP / t.nextXP / pandaPercentPerSecond
+				else
+					timePassed = t.restXP / t.nextXP / percentPerSecond
+				end
 				local timeToMax = 864000 - timePassed
 				if not t.isResting then
 					timeToMax = timeToMax * 4
