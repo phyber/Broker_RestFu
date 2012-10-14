@@ -167,21 +167,22 @@ function Broker_RestFu:UpdateRestXPData(realm, char)
 	end
 	local now = time()
 	local t = self.db.global[realm][char]
-	if t.level ~= maxLevel and t.restXP < t.nextXP * 1.5 then
+	local multiplier = 1.5
+	local PPS = percentPerSecond
+	if t.localrace == "Pandaren" then
+		PPS = pandaPercentPerSecond
+		multiplier = 3
+	end
+	if t.level ~= maxLevel and t.restXP < t.nextXP * multiplier then
 		local seconds = now - t.time
-		local gained
-		if t.localrace == "Pandaren" then
-			gained = t.nextXP * pandaPercentPerSecond * seconds
-		else
-			gained = t.nextXP * percentPerSecond * seconds
-		end
+		local gained = t.nextXP * PPS * seconds
 		if not t.isResting then
 			gained = gained / 4
 		end
 		t.time = now
 		t.restXP = t.restXP + gained
-		if t.restXP > t.nextXP * 1.5 then
-			t.restXP = t.nextXP * 1.5
+		if t.restXP > t.nextXP * multiplier then
+			t.restXP = t.nextXP * multiplier
 		end
 	end
 end
