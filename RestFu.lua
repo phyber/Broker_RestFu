@@ -18,6 +18,7 @@ local table_sort = table.sort
 local GetRealmName = GetRealmName
 local GetRealZoneText = GetRealZoneText
 local GetXPExhaustion = GetXPExhaustion
+local GetAddOnMetadata = GetAddOnMetadata
 local IsResting = IsResting
 local UnitXP = UnitXP
 local UnitClass = UnitClass
@@ -38,8 +39,6 @@ local defaults = {
 			hide = false,
 		},
 	},
-	char = {},
-	realm = {},
 	global = {},
 }
 
@@ -58,6 +57,21 @@ local function GetOptions(uiType, uiName, appName)
 					type = "description",
 					order = 0,
 					name = GetAddOnMetadata("Broker_RestFu", "Notes"),
+				},
+				minimap = {
+					name = "Minimap Icon",
+					desc = "Toggle minimap icon",
+					type = "toggle",
+					order = 10,
+					get = function() return not db.minimap.hide end,
+					set = function()
+						db.minimap.hide = not db.minimap.hide
+						if db.minimap.hide then
+							icon:Hide("Broker_RestFu")
+						else
+							icon:Show("Broker_RestFu")
+						end
+					end,
 				},
 			},
 		}
@@ -178,6 +192,17 @@ function Broker_RestFu:DrawTooltip()
 	tooltip:Hide()
 	tooltip:Clear()
 
+	local myFont
+	if not Broker_RestFu_Tooltip_Font then
+		myFont = CreateFont("Broker_RestFu_Tooltip_Font")
+		local filename, size, flags = tooltip:GetFont():GetFont()
+		myFont:SetFont(filename, size, flags)
+		myFont:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+	else
+		myFont = Broker_RestFu_Tooltip_Font
+	end
+	tooltip:SetFont(myFont)
+
 	local linenum
 	local now = time()
 	local NFC = ("%02x%02x%02x"):format(
@@ -244,7 +269,7 @@ function Broker_RestFu:DrawTooltip()
 					("|cff%s %s|r"):format(NFC, playedTimeText),
 					lastPlayed,
 					timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
-					("|cff%s%.0f%%|r"):format(NFC, t.currXP / t.nextXP * 100),
+					("%.0f%%"):format(t.currXP / t.nextXP * 100),
 					("|cff%02x%02x%02x(%+.0f%%)|r"):format(r*255, g*255, b*255, t.restXP / t.nextXP * 100),
 					("|cffffffff%s|r"):format(t.zone or "Unknown")
 				)
@@ -267,10 +292,9 @@ function Broker_RestFu:DrawTooltip()
 				)
 			end
 		end
-
-		tooltip:AddLine(" ")
 	end
 
+	tooltip:UpdateScrolling()
 	tooltip:Show()
 end
 
@@ -293,7 +317,7 @@ function dataobj:OnEnter()
 	tooltip:SmartAnchorTo(self)
 	tooltip:SetAutoHideDelay(0.25, self)
 	tooltip:SetScale(1)
-	tooltip:GetFont():SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+	--tooltip:GetFont():SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 
 	Broker_RestFu:DrawTooltip()
 end
