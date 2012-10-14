@@ -1,6 +1,6 @@
 local LDB = LibStub:GetLibrary("LibDataBroker-1.1")
 local LQT = LibStub("LibQTip-1.0")
-local L = LibStub("AceLocale-3.0"):GetLocale("Broker_RestFu")
+--local L = LibStub("AceLocale-3.0"):GetLocale("Broker_RestFu")
 local abacus = LibStub("LibAbacus-3.0")
 local crayon = LibStub("LibCrayon-3.0")
 local dataobj = LDB:NewDataObject("Broker_RestFu", {
@@ -40,6 +40,7 @@ local defaults = {
 	},
 	char = {},
 	realm = {},
+	global = {},
 }
 
 local function GetOptions(uiType, uiName, appName)
@@ -73,7 +74,7 @@ function Broker_RestFu:OnInitialize()
 
 	-- Options
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-General", GetOptions)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_MoneyFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
 end
 
 function Broker_RestFu:OnEnable()
@@ -103,16 +104,24 @@ function Broker_RestFu:Save()
 			self:ReIndex()
 		end
 
-		local t = self.char
+		local char = UnitName("player")
+		local realm = GetRealmName()
+		if not self.db.global[realm] then
+			self.db.global[realm] = {}
+		end
+		if not self.db.global[realm][char] then
+			self.db.global[realm][char] = {}
+		end
+		local t = self.db.global[realm][char]
 		t.level = UnitLevel("player")
-		t.class, t.localclass = UnitClass("player")
 		t.currXP = UnitXP("player")
 		t.nextXP = UnitXPMax("player")
+		t.faction = UnitFactionGroup("player")
+		t.class, t.localclass = UnitClass("player")
 		t.restXP = GetXPExhaustion() or 0
 		t.isResting = IsResting() and true or false
 		t.zone = zone
-		t.faction = UnitFactionGroup("player")
-		t.realm = GetRealmName()
+		t.realm = realm
 		t.time = time()
 
 		if self.timePlayed then
@@ -123,6 +132,14 @@ function Broker_RestFu:Save()
 
 		t.lastPlayed = time()
 	end
+end
+
+function Broker_RestFu:UpdateTooltip()
+
+end
+
+function Broker_RestFu:OnUpdate()
+
 end
 
 function Broker_RestFu:OnUpdate_TimePlayed()
@@ -151,6 +168,112 @@ end
 local function sortRealms(alpha, bravo)
 end
 
+function Broker_RestFu:ShowTooltip()
+
+end
+
+local realms
+local percentPerSecond = 0.05 / 28800
+function Broker_RestFu:DrawTooltip()
+	tooltip:Hide()
+	tooltip:Clear()
+
+	local linenum
+	local now = time()
+	local NFC = NORMAL_FONT_COLOR
+	NFC = ("%02x%02x%02x"):format(NFC.r * 255, NFC.g * 255, NFC.b * 255)
+
+	-- Header
+	tooltip:AddLine(nil, nil, nil, GetAddOnMetadata("Broker_RestFu", "Title"))
+	tooltip:AddLine(" ")
+
+	if not realms then
+		realms = {}
+		for realm, _ in pairs(self.db.global) do
+			realms[#realms + 1] = realm
+		end
+		table_sort(realms)
+	end
+
+	for _, realm in ipairs(realms) do
+		tooltip:AddLine(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
+
+		local chars = {}
+		for char, _ in pairs(self.db.global[realm]) do
+			chars[#chars + 1] = char
+		end
+		table_sort(chars)
+
+		for _, char in ipairs(chars) do
+			local t = self.db.global[realm][char]
+			local RCC = RAID_CLASS_COLORS[t.localclass]
+			local classColor = string_format("%02x%02x%02x", RCC.r * 255, RCC.g * 255, RCC.b * 255)
+			local lastPlayed
+			if t.lastPlayed then
+				lastPlayed = ("%s |cffffffffago|r"):format(abacus:FormatDurationCondensed(now - t.lastPlayed, true, true))
+			else
+				lastPlayed = "-"
+			end
+			local factionText = ""
+			if t.faction == "Horde" then
+				factionText = " |cffcf0000(H)|r"
+			elseif t.faction == "Alliance" then
+				factionText = " |cff0000cf(A)|r"
+			end
+
+			if t.level ~= maxLevel then
+				local r, g, b = crayon:GetThresholdColor(t.restXP / t.nextXP, 0, 0.5, 1, 1.25, 1.5)
+				local timePassed = t.restXP / t.nextXP / percentPerSecond
+				local timeToMax = 864000 - timePassed
+				if not t.isResting then
+					timeToMax = timeToMax * 4
+				end
+				local playedTime
+				if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
+					playedTime = self.timePlayed + time() - self.timePlayedMsgTime
+				else
+					playedTime = t.timePlayed or 0
+				end
+				local charInfo = ("|cff%s%s|r |cff%s[|r|cffffffff%d|r|cff%s]|r%s"):format(classColor, char, NFC, t.level or 0, NFC, factionText)
+				tooltip:AddLine(
+					charInfo,
+					abacus:FormatDurationCondensed(playedTime, true, true),
+					lastPlayed,
+					timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
+					("|cff%s%.0f%%|r"):format(NFC, t.currXP / t.nextXP * 100),
+					("|cff%02x%02x%02x(%+.0f%%)|r"):format(r*255, g*255, b*255, t.restXP / t.nextXP * 100),
+					t.zone or "Unknown"
+				)
+			else
+				local timePlayed
+				if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
+					playedTime = self.timePlayed + time() - self.timePlayedMsgTime
+				else
+					playedTime = t.timePlayed or 0
+				end
+				local charInfo = ("|cff%s%s|r |cff%s[|r|cffffffff%d|r|cff%s]|r%s"):format(classColor, char, NFC, t.level or 0, NFC, factionText)
+				tooltip:AddLine(
+					charInfo,
+					abacus:FormatDurationCondensed(playedTime, true, true),
+					lastPlayed,
+					nil,
+					nil,
+					nil,
+					("|cffffffff%s|r"):format(t.zone or "Unknown")
+				)
+			end
+		end
+
+		tooltip:AddLine(" ")
+	end
+
+	tooltip:Show()
+end
+
+function Broker_RestFu:HideTooltip()
+
+end
+
 -- LDB functions
 function dataobj:OnEnter()
 	if not LQT:IsAcquired("Broker_RestFu") then
@@ -158,11 +281,12 @@ function dataobj:OnEnter()
 			-- Columns
 			7,
 			-- Alignments
+			-- Realm, TimePlayed, LastPlayed, TimeToRest, CurrentXP, RestXP, Zone
 			"LEFT", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "RIGHT"
 		)
 	end
 	tooltip:Clear()
-	tooltip:SmartAnchorTo(dataobj)
+	tooltip:SmartAnchorTo(self)
 	tooltip:SetAutoHideDelay(0.25, self)
 	tooltip:SetScale(1)
 
