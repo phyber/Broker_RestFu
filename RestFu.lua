@@ -180,11 +180,14 @@ function Broker_RestFu:DrawTooltip()
 
 	local linenum
 	local now = time()
-	local NFC = NORMAL_FONT_COLOR
-	NFC = ("%02x%02x%02x"):format(NFC.r * 255, NFC.g * 255, NFC.b * 255)
+	local NFC = ("%02x%02x%02x"):format(
+		NORMAL_FONT_COLOR.r * 255,
+		NORMAL_FONT_COLOR.g * 255,
+		NORMAL_FONT_COLOR.b * 255
+	)
 
 	-- Header
-	tooltip:AddLine(nil, nil, nil, GetAddOnMetadata("Broker_RestFu", "Title"))
+	tooltip:AddHeader(nil, nil, nil, GetAddOnMetadata("Broker_RestFu", "Title"))
 	tooltip:AddLine(" ")
 
 	if not realms then
@@ -196,7 +199,7 @@ function Broker_RestFu:DrawTooltip()
 	end
 
 	for _, realm in ipairs(realms) do
-		tooltip:AddLine(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
+		tooltip:AddHeader(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
 
 		local chars = {}
 		for char, _ in pairs(self.db.global[realm]) do
@@ -234,15 +237,16 @@ function Broker_RestFu:DrawTooltip()
 				else
 					playedTime = t.timePlayed or 0
 				end
-				local charInfo = ("|cff%s%s|r |cff%s[|r|cffffffff%d|r|cff%s]|r%s"):format(classColor, char, NFC, t.level or 0, NFC, factionText)
+				local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
+				local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
 				tooltip:AddLine(
 					charInfo,
-					abacus:FormatDurationCondensed(playedTime, true, true),
+					("|cff%s %s|r"):format(NFC, playedTimeText),
 					lastPlayed,
 					timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
 					("|cff%s%.0f%%|r"):format(NFC, t.currXP / t.nextXP * 100),
 					("|cff%02x%02x%02x(%+.0f%%)|r"):format(r*255, g*255, b*255, t.restXP / t.nextXP * 100),
-					t.zone or "Unknown"
+					("|cffffffff%s|r"):format(t.zone or "Unknown")
 				)
 			else
 				local timePlayed
@@ -251,10 +255,10 @@ function Broker_RestFu:DrawTooltip()
 				else
 					playedTime = t.timePlayed or 0
 				end
-				local charInfo = ("|cff%s%s|r |cff%s[|r|cffffffff%d|r|cff%s]|r%s"):format(classColor, char, NFC, t.level or 0, NFC, factionText)
+				local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
 				tooltip:AddLine(
 					charInfo,
-					abacus:FormatDurationCondensed(playedTime, true, true),
+					("|cff%s%s|r"):format(NFC, abacus:FormatDurationCondensed(playedTime, true, true)),
 					lastPlayed,
 					nil,
 					nil,
@@ -289,6 +293,7 @@ function dataobj:OnEnter()
 	tooltip:SmartAnchorTo(self)
 	tooltip:SetAutoHideDelay(0.25, self)
 	tooltip:SetScale(1)
+	tooltip:GetFont():SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 
 	Broker_RestFu:DrawTooltip()
 end
