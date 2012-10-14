@@ -102,22 +102,11 @@ function Broker_RestFu:OnEnable()
 	self:Save()
 end
 
-function Broker_RestFu:ReIndex()
-	if not timerSched.OnUpdate then
-		timerSched.OnUpdate = self:ScheduleRepeatingTimer("OnUpdate", 3)
-		timerSched.UpdateTooltip = self:ScheduleRepeatingTimer("UpdateTooltip", 60)
-	end
-end
-
 function Broker_RestFu:Save()
 	local zone = GetRealZoneText()
 	if zone == nil or zone == "" then
 		self:ScheduleTimer("Save", 5)
 	elseif UnitLevel("player") ~= 0 then
-		if not self.myData then
-			self:ReIndex()
-		end
-
 		local char = UnitName("player")
 		local realm = GetRealmName()
 		if not self.db.global[realm] then
@@ -148,14 +137,6 @@ function Broker_RestFu:Save()
 	end
 end
 
-function Broker_RestFu:UpdateTooltip()
-
-end
-
-function Broker_RestFu:OnUpdate()
-
-end
-
 function Broker_RestFu:OnUpdate_TimePlayed()
 	if timerSched.TimePlayed then
 		if self:CancelTimer(timerSched.TimePlayed) then
@@ -176,18 +157,28 @@ function Broker_RestFu:TIME_PLAYED_MSG(event, totaltime, leveltime)
 	self:Save()
 end
 
-local sortChars_realm
-local function sortChars(alpha, bravo)
-end
-local function sortRealms(alpha, bravo)
-end
-
-function Broker_RestFu:ShowTooltip()
-
+local percentPerSecond = 0.05 / 28800
+function Broker_RestFu:UpdateRestXPData(realm, char)
+	if not realm or not char then
+		return
+	end
+	local now = time()
+	local t = self.db.global[realm][char]
+	if t.level ~= maxLevel and t.restXP < t.nextXP * 1.5 then
+		local seconds = now - t.time
+		local gained = t.nextXP * percentPerSecond * seconds
+		if not t.isResting then
+			gained = gained / 4
+		end
+		t.time = now
+		t.restXP = t.restXP + gained
+		if t.restXP > t.nextXP * 1.5 then
+			t.restXP = t.nextXP * 1.5
+		end
+	end
 end
 
 local realms
-local percentPerSecond = 0.05 / 28800
 function Broker_RestFu:DrawTooltip()
 	tooltip:Hide()
 	tooltip:Clear()
@@ -234,6 +225,7 @@ function Broker_RestFu:DrawTooltip()
 		table_sort(chars)
 
 		for _, char in ipairs(chars) do
+			self:UpdateRestXPData(realm, char)
 			local t = self.db.global[realm][char]
 			local RCC = RAID_CLASS_COLORS[t.localclass]
 			local classColor = string_format("%02x%02x%02x", RCC.r * 255, RCC.g * 255, RCC.b * 255)
@@ -308,10 +300,6 @@ function Broker_RestFu:DrawTooltip()
 	tooltip:Show()
 end
 
-function Broker_RestFu:HideTooltip()
-
-end
-
 -- LDB functions
 function dataobj:OnEnter()
 	if not LQT:IsAcquired("Broker_RestFu") then
@@ -327,7 +315,6 @@ function dataobj:OnEnter()
 	tooltip:SmartAnchorTo(self)
 	tooltip:SetAutoHideDelay(0.25, self)
 	tooltip:SetScale(1)
-	--tooltip:GetFont():SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 
 	Broker_RestFu:DrawTooltip()
 end
