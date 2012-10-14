@@ -205,6 +205,7 @@ function Broker_RestFu:DrawTooltip()
 
 	local linenum
 	local now = time()
+	local totalTimePlayed = 0
 	local NFC = ("%02x%02x%02x"):format(
 		NORMAL_FONT_COLOR.r * 255,
 		NORMAL_FONT_COLOR.g * 255,
@@ -262,6 +263,7 @@ function Broker_RestFu:DrawTooltip()
 				else
 					playedTime = t.timePlayed or 0
 				end
+				totalTimePlayed = totalTimePlayed + playedTime
 				local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
 				local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
 				tooltip:AddLine(
@@ -280,6 +282,7 @@ function Broker_RestFu:DrawTooltip()
 				else
 					playedTime = t.timePlayed or 0
 				end
+				totalTimePlayed = totalTimePlayed + playedTime
 				local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
 				tooltip:AddLine(
 					charInfo,
@@ -293,6 +296,13 @@ function Broker_RestFu:DrawTooltip()
 			end
 		end
 	end
+
+	tooltip:AddLine(" ")
+	tooltip:AddLine(
+		("|cffffffff%s|r"):format("Total time played"),
+		nil, nil, nil, nil, nil,
+		abacus:FormatDurationExtended(totalTimePlayed, true, true)
+	)
 
 	tooltip:UpdateScrolling()
 	tooltip:Show()
