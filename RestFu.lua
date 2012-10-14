@@ -116,10 +116,12 @@ function Broker_RestFu:Save()
 			self.db.global[realm][char] = {}
 		end
 		local t = self.db.global[realm][char]
+		local _
 		t.level = UnitLevel("player")
 		t.currXP = UnitXP("player")
 		t.nextXP = UnitXPMax("player")
 		t.faction = UnitFactionGroup("player")
+		_, t.localrace = UnitRace("player")
 		t.class, t.localclass = UnitClass("player")
 		t.restXP = GetXPExhaustion() or 0
 		t.isResting = IsResting() and true or false
@@ -215,7 +217,10 @@ function Broker_RestFu:DrawTooltip()
 		table_sort(realms)
 	end
 
-	for _, realm in ipairs(realms) do
+	for realmCount, realm in ipairs(realms) do
+		if realmCount ~= 1 then
+			tooltip:AddLine(" ")
+		end
 		tooltip:AddHeader(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
 
 		local chars = {}
