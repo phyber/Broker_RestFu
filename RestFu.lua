@@ -13,7 +13,6 @@ local time = time
 local pairs = pairs
 local ipairs = ipairs
 local string_format = string.format
-local table_insert = table.insert
 local table_sort = table.sort
 local GetRealmName = GetRealmName
 local GetRealZoneText = GetRealZoneText
@@ -109,6 +108,8 @@ function Broker_RestFu:Save()
 	elseif UnitLevel("player") ~= 0 then
 		local char = UnitName("player")
 		local realm = GetRealmName()
+		-- Create tables for realms and characters if they don't
+		-- exist yet.
 		if not self.db.global[realm] then
 			self.db.global[realm] = {}
 		end
@@ -188,6 +189,7 @@ function Broker_RestFu:UpdateRestXPData(realm, char)
 end
 
 local realms
+local chars
 function Broker_RestFu:DrawTooltip()
 	tooltip:Hide()
 	tooltip:Clear()
@@ -216,27 +218,29 @@ function Broker_RestFu:DrawTooltip()
 	tooltip:AddHeader(nil, nil, nil, GetAddOnMetadata("Broker_RestFu", "Title"))
 	tooltip:AddLine(" ")
 
+	-- Generate a list of realms and chars the first time we build the tooltip
 	if not realms then
 		realms = {}
+		chars = {}
 		for realm, _ in pairs(self.db.global) do
 			realms[#realms + 1] = realm
+			chars[realm] = {}
+			for char, _ in pairs(self.db.global[realm]) do
+				chars[realm][#chars[realm] + 1] = char
+			end
+			table_sort(chars[realm])
 		end
 		table_sort(realms)
 	end
 
 	for realmCount, realm in ipairs(realms) do
+		-- Ensure there is a blank line between each realm
 		if realmCount ~= 1 then
 			tooltip:AddLine(" ")
 		end
 		tooltip:AddHeader(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
 
-		local chars = {}
-		for char, _ in pairs(self.db.global[realm]) do
-			chars[#chars + 1] = char
-		end
-		table_sort(chars)
-
-		for _, char in ipairs(chars) do
+		for _, char in ipairs(chars[realm]) do
 			self:UpdateRestXPData(realm, char)
 			local t = self.db.global[realm][char]
 			local RCC = RAID_CLASS_COLORS[t.localclass]
