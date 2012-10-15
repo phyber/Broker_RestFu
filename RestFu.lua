@@ -82,6 +82,40 @@ local function GetOptions(uiType, uiName, appName)
 		return options
 	end
 
+	if appName == "Broker-RestFu-Filter" then
+		local options = {
+			type = "group",
+			name = "Filter",
+			args = {
+				brfufdesc = {
+					type = "description",
+					order = 0,
+					name = "Filter specific characters or realms",
+				},
+				filterrealm = {
+					name = "Filter Realm",
+					desc = "Select a realm to filter",
+					type = "multiselect",
+					order = 50,
+					values = function()
+						local t = {}
+						for realm, _ in pairs(Broker_RestFu.db.global) do
+							t[realm] = realm
+						end
+						return t
+					end,
+					get = function(info, value)
+						return db.filter.realm[value] and true or false
+					end,
+					set = function(info, value)
+						db.filter.realm[value] = not db.filter.realm[value]
+					end,
+				},
+			},
+		}
+		return options
+	end
+
 	if appName == "Broker_RestFu-Purge" then
 		local options = {
 			type = "group",
@@ -139,6 +173,7 @@ local function GetOptions(uiType, uiName, appName)
 				},
 			},
 		}
+		return options
 	end
 end
 
