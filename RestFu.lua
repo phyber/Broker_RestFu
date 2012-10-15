@@ -207,11 +207,6 @@ function Broker_RestFu:DrawTooltip()
 
 	local now = time()
 	local totalTimePlayed = 0
-	local NFC = ("%02x%02x%02x"):format(
-		NORMAL_FONT_COLOR.r * 255,
-		NORMAL_FONT_COLOR.g * 255,
-		NORMAL_FONT_COLOR.b * 255
-	)
 
 	-- Header
 	tooltip:AddHeader(nil, nil, nil, GetAddOnMetadata("Broker_RestFu", "Title"))
@@ -267,7 +262,7 @@ function Broker_RestFu:DrawTooltip()
 			end
 			totalTimePlayed = totalTimePlayed + playedTime
 
-			local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
+			local charInfo = ("|cff%s%s|r [|cffffffff%d|r]%s"):format(classColor, char, t.level or 0, factionText)
 			local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
 
 			if t.level ~= maxLevel then
@@ -284,7 +279,7 @@ function Broker_RestFu:DrawTooltip()
 				end
 				tooltip:AddLine(
 					charInfo,
-					("|cff%s %s|r"):format(NFC, playedTimeText),
+					playedTimeText,
 					lastPlayed,
 					timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
 					("%.0f%%"):format(t.currXP / t.nextXP * 100),
@@ -294,7 +289,7 @@ function Broker_RestFu:DrawTooltip()
 			else
 				tooltip:AddLine(
 					charInfo,
-					("|cff%s%s|r"):format(NFC, playedTimeText),
+					playedTimeText,
 					lastPlayed,
 					nil,
 					nil,
