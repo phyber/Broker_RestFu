@@ -27,6 +27,7 @@ local UnitFactionGroup = UnitFactionGroup
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local maxLevel = MAX_PLAYER_LEVEL_TABLE[GetAccountExpansionLevel()]
 local timerSched = {}
+local purged = false
 
 Broker_RestFu = LibStub("AceAddon-3.0"):NewAddon("Broker_RestFu", "AceEvent-3.0", "AceTimer-3.0")
 local self, Broker_RestFu = Broker_RestFu, Broker_RestFu
@@ -36,6 +37,10 @@ local defaults = {
 	profile = {
 		minimap = {
 			hide = false,
+		},
+		filter = {
+			realm = {},
+			char = {},
 		},
 	},
 	global = {},
@@ -76,6 +81,65 @@ local function GetOptions(uiType, uiName, appName)
 		}
 		return options
 	end
+
+	if appName == "Broker_RestFu-Purge" then
+		local options = {
+			type = "group",
+			name = "Purge",
+			args = {
+				brfupdesc = {
+					type = "description",
+					order = 0,
+					name = "Purge characters or realms",
+				},
+				purgechar = {
+					name = "Purge Character",
+					desc = "Select a character to purge",
+					type = "select",
+					style = "radio",
+					order = 50,
+					confirm = function(info, value)
+						return ("Are you sure you wish to delete '%s'?"):format(value)
+					end,
+					values = function()
+						local t = {}
+						for realm, _ in pairs(Broker_RestFu.db.global) do
+							for char, _ in pairs(Broker_RestFu.db.global[realm]) do
+								t[{realm, char}] = realm .."-".. char
+							end
+						end
+						return t
+					end,
+					set = function(info, value)
+						local realm, char = value[1], value[2]
+						Broker_RestFu.db.global[realm][char] = nil
+						purged = true
+					end,
+				},
+				purgerealm = {
+					name = "Purge Realm",
+					desc = "Select a realm to purge",
+					type = "select",
+					style = "radio",
+					order = 100,
+					confirm = function(info, value)
+						return ("Are you sure you wish to delete '%s'?"):format(value)
+					end,
+					values = function()
+						local t = {}
+						for realm, _ in pairs(Broker_RestFu.db.global) do
+							t[realm] = realm
+						end
+						return t
+					end,
+					set = function(info, value)
+						Broker_RestFu.db.global[value] = nil
+						purged = true
+					end,
+				},
+			},
+		}
+	end
 end
 
 function Broker_RestFu:OnInitialize()
@@ -88,6 +152,8 @@ function Broker_RestFu:OnInitialize()
 	-- Options
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-General", GetOptions)
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Purge", GetOptions)
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker-RestFu-Purge", GetAddOnMetadata("Broker_RestFu", "Title"))
 end
 
 function Broker_RestFu:OnEnable()
@@ -213,7 +279,8 @@ function Broker_RestFu:DrawTooltip()
 	tooltip:AddLine(" ")
 
 	-- Generate a list of realms and chars the first time we build the tooltip
-	if not realms then
+	if not realms or purged = true then
+		purged = false
 		realms = {}
 		chars = {}
 		for realm, _ in pairs(self.db.global) do
