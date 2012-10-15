@@ -82,7 +82,7 @@ local function GetOptions(uiType, uiName, appName)
 		return options
 	end
 
-	if appName == "Broker-RestFu-Filter" then
+	if appName == "Broker_RestFu-Filter" then
 		local options = {
 			type = "group",
 			name = "Filter",
@@ -90,7 +90,7 @@ local function GetOptions(uiType, uiName, appName)
 				brfufdesc = {
 					type = "description",
 					order = 0,
-					name = "Filter specific characters or realms",
+					name = "Filter specific characters or realms to hide them from the tooltip.",
 				},
 				filterrealm = {
 					name = "Filter Realm",
@@ -108,11 +108,57 @@ local function GetOptions(uiType, uiName, appName)
 						return db.filter.realm[value] and true or false
 					end,
 					set = function(info, value)
-						db.filter.realm[value] = not db.filter.realm[value]
+						if db.filter.realm[value] then
+							db.filter.realm[value] = nil
+						else
+							db.filter.realm[value] = true
+						end
 					end,
 				},
 			},
 		}
+		-- Generate character purge options
+		local optOrder = 200
+		for realm, _ in pairs(Broker_RestFu.db.global) do
+			options.args["filterchar"..realm] = {
+				name = "Filter Character from "..realm,
+				desc = "Select a character to filter",
+				type = "multiselect",
+				order = optOrder,
+				values = function()
+					local t = {}
+					for char, _ in pairs(Broker_RestFu.db.global[realm]) do
+						t[char] = char
+					end
+					return t
+				end,
+				get = function(info, value)
+					if not db.filter.char[realm] then
+						return false
+					end
+					return db.filter.char[realm][value] and true or false
+				end,
+				set = function(info, value)
+					if not db.filter.char[realm] then
+						db.filter.char[realm] = {}
+					end
+					if db.filter.char[realm][value] then
+						db.filter.char[realm][value] = nil
+					else
+						db.filter.char[realm][value] = true
+					end
+					-- Check if we also need to purge the realm
+					local count = 0
+					for _ in pairs(db.filter.char[realm]) do
+						count = count + 1
+					end
+					if count == 0 then
+						db.filter.char[realm] = nil
+					end
+				end,
+			}
+			optOrder = optOrder + 5
+		end
 		return options
 	end
 
@@ -197,8 +243,10 @@ function Broker_RestFu:OnInitialize()
 
 	-- Options
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-General", GetOptions)
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Filter", GetOptions)
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Purge", GetOptions)
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Filter", "Filter", GetAddOnMetadata("Broker_RestFu", "Title"))
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Purge", "Purge", GetAddOnMetadata("Broker_RestFu", "Title"))
 end
 
@@ -272,6 +320,24 @@ function Broker_RestFu:TIME_PLAYED_MSG(event, totaltime, leveltime)
 	self:Save()
 end
 
+function Broker_RestFu:IsFiltered(type, realm, char)
+	if type == "realm" then
+		if self.db.profile.filter.realm[realm] then
+			return true
+		end
+		return false
+	end
+	if type == "character" then
+		if self.db.profile.filter.char[realm] then
+			if self.db.profile.filter.char[realm][char] then
+				return true
+			end
+		end
+		return false
+	end
+	return false
+end
+
 local percentPerSecond = 0.05 / 28800
 local pandaPercentPerSecond = 0.1 / 28800
 function Broker_RestFu:UpdateRestXPData(realm, char)
@@ -341,74 +407,78 @@ function Broker_RestFu:DrawTooltip()
 	end
 
 	for realmCount, realm in ipairs(realms) do
-		-- Ensure there is a blank line between each realm
-		if realmCount ~= 1 then
-			tooltip:AddLine(" ")
-		end
-		tooltip:AddHeader(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
-
-		for _, char in ipairs(chars[realm]) do
-			self:UpdateRestXPData(realm, char)
-			local t = self.db.global[realm][char]
-			local RCC = RAID_CLASS_COLORS[t.localclass]
-			local classColor = string_format("%02x%02x%02x", RCC.r * 255, RCC.g * 255, RCC.b * 255)
-
-			local lastPlayed
-			if t.lastPlayed then
-				lastPlayed = ("%s |cffffffffago|r"):format(abacus:FormatDurationCondensed(now - t.lastPlayed, true, true))
-			else
-				lastPlayed = "-"
+		if not self:IsFiltered("realm", realm) then
+			-- Ensure there is a blank line between each realm
+			if realmCount ~= 1 then
+				tooltip:AddLine(" ")
 			end
+			tooltip:AddHeader(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
 
-			local factionText = ""
-			if t.faction == "Horde" then
-				factionText = " |cffcf0000(H)|r"
-			elseif t.faction == "Alliance" then
-				factionText = " |cff0000cf(A)|r"
-			end
+			for _, char in ipairs(chars[realm]) do
+				if not self:IsFiltered("character", realm, char) then
+					self:UpdateRestXPData(realm, char)
+					local t = self.db.global[realm][char]
+					local RCC = RAID_CLASS_COLORS[t.localclass]
+					local classColor = string_format("%02x%02x%02x", RCC.r * 255, RCC.g * 255, RCC.b * 255)
 
-			local playedTime
-			if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
-				playedTime = self.timePlayed + time() - self.timePlayedMsgTime
-			else
-				playedTime = t.timePlayed or 0
-			end
-			totalTimePlayed = totalTimePlayed + playedTime
+					local lastPlayed
+					if t.lastPlayed then
+						lastPlayed = ("%s |cffffffffago|r"):format(abacus:FormatDurationCondensed(now - t.lastPlayed, true, true))
+					else
+						lastPlayed = "-"
+					end
 
-			local charInfo = ("|cff%s%s|r [|cffffffff%d|r]%s"):format(classColor, char, t.level or 0, factionText)
-			local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
+					local factionText = ""
+					if t.faction == "Horde" then
+						factionText = " |cffcf0000(H)|r"
+					elseif t.faction == "Alliance" then
+						factionText = " |cff0000cf(A)|r"
+					end
 
-			if t.level ~= maxLevel then
-				local r, g, b = crayon:GetThresholdColor(t.restXP / t.nextXP, 0, 0.5, 1, 1.25, 1.5)
-				local timePassed
-				if t.localrace == "Pandaren" then
-					timePassed = t.restXP / t.nextXP / pandaPercentPerSecond
-				else
-					timePassed = t.restXP / t.nextXP / percentPerSecond
+					local playedTime
+					if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
+						playedTime = self.timePlayed + time() - self.timePlayedMsgTime
+					else
+						playedTime = t.timePlayed or 0
+					end
+					totalTimePlayed = totalTimePlayed + playedTime
+
+					local charInfo = ("|cff%s%s|r [|cffffffff%d|r]%s"):format(classColor, char, t.level or 0, factionText)
+					local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
+
+					if t.level ~= maxLevel then
+						local r, g, b = crayon:GetThresholdColor(t.restXP / t.nextXP, 0, 0.5, 1, 1.25, 1.5)
+						local timePassed
+						if t.localrace == "Pandaren" then
+							timePassed = t.restXP / t.nextXP / pandaPercentPerSecond
+						else
+							timePassed = t.restXP / t.nextXP / percentPerSecond
+						end
+						local timeToMax = 864000 - timePassed
+						if not t.isResting then
+							timeToMax = timeToMax * 4
+						end
+						tooltip:AddLine(
+							charInfo,
+							playedTimeText,
+							lastPlayed,
+							timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
+							("%.0f%%"):format(t.currXP / t.nextXP * 100),
+							("|cff%02x%02x%02x(%+.0f%%)|r"):format(r * 255, g * 255, b * 255, t.restXP / t.nextXP * 100),
+							("|cffffffff%s|r"):format(t.zone or "Unknown")
+						)
+					else
+						tooltip:AddLine(
+							charInfo,
+							playedTimeText,
+							lastPlayed,
+							nil,
+							nil,
+							nil,
+							("|cffffffff%s|r"):format(t.zone or "Unknown")
+						)
+					end
 				end
-				local timeToMax = 864000 - timePassed
-				if not t.isResting then
-					timeToMax = timeToMax * 4
-				end
-				tooltip:AddLine(
-					charInfo,
-					playedTimeText,
-					lastPlayed,
-					timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
-					("%.0f%%"):format(t.currXP / t.nextXP * 100),
-					("|cff%02x%02x%02x(%+.0f%%)|r"):format(r * 255, g * 255, b * 255, t.restXP / t.nextXP * 100),
-					("|cffffffff%s|r"):format(t.zone or "Unknown")
-				)
-			else
-				tooltip:AddLine(
-					charInfo,
-					playedTimeText,
-					lastPlayed,
-					nil,
-					nil,
-					nil,
-					("|cffffffff%s|r"):format(t.zone or "Unknown")
-				)
 			end
 		end
 	end
