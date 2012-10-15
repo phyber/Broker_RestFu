@@ -126,30 +126,6 @@ local function GetOptions(uiType, uiName, appName)
 					order = 0,
 					name = "Purge characters or realms",
 				},
-				purgechar = {
-					name = "Purge Character",
-					desc = "Select a character to purge",
-					type = "select",
-					style = "radio",
-					order = 50,
-					confirm = function(info, value)
-						return ("Are you sure you wish to delete '%s'?"):format(value)
-					end,
-					values = function()
-						local t = {}
-						for realm, _ in pairs(Broker_RestFu.db.global) do
-							for char, _ in pairs(Broker_RestFu.db.global[realm]) do
-								t[{realm, char}] = realm .."-".. char
-							end
-						end
-						return t
-					end,
-					set = function(info, value)
-						local realm, char = value[1], value[2]
-						Broker_RestFu.db.global[realm][char] = nil
-						purged = true
-					end,
-				},
 				purgerealm = {
 					name = "Purge Realm",
 					desc = "Select a realm to purge",
@@ -173,6 +149,41 @@ local function GetOptions(uiType, uiName, appName)
 				},
 			},
 		}
+		-- Generate character purge options
+		local optOrder = 200
+		for realm, _ in pairs(Broker_RestFu.db.global) do
+			options.args["purgechar"..realm] = {
+				name = "Purge Character from "..realm,
+				desc = "Select a character to purge",
+				type = "select",
+				style = "radio",
+				order = optOrder,
+				confirm = function(info, value)
+					return ("Are you sure you wish to delete '%s'?"):format(value)
+				end,
+				values = function()
+					local t = {}
+					for char, _ in pairs(Broker_RestFu.db.global[realm]) do
+						t[char] = char
+					end
+					return t
+				end,
+				set = function(info, value)
+					Broker_RestFu.db.global[realm][value] = nil
+					-- Check if we also need to purge the realm
+					local count = 0
+					for _ in pairs(Broker_RestFu.db.global[realm]) do
+						count = count + 1
+					end
+					if count == 0 then
+						Broker_RestFu.db.global[realm] = nil
+					end
+					purged = true
+				end,
+			}
+			optOrder = optOrder + 5
+		end
+
 		return options
 	end
 end
@@ -186,9 +197,9 @@ function Broker_RestFu:OnInitialize()
 
 	-- Options
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-General", GetOptions)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Purge", GetOptions)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker-RestFu-Purge", GetAddOnMetadata("Broker_RestFu", "Title"))
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Purge", "Purge", GetAddOnMetadata("Broker_RestFu", "Title"))
 end
 
 function Broker_RestFu:OnEnable()
@@ -314,7 +325,7 @@ function Broker_RestFu:DrawTooltip()
 	tooltip:AddLine(" ")
 
 	-- Generate a list of realms and chars the first time we build the tooltip
-	if not realms or purged = true then
+	if not realms or purged == true then
 		purged = false
 		realms = {}
 		chars = {}
