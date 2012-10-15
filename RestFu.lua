@@ -205,7 +205,6 @@ function Broker_RestFu:DrawTooltip()
 	end
 	tooltip:SetFont(myFont)
 
-	local linenum
 	local now = time()
 	local totalTimePlayed = 0
 	local NFC = ("%02x%02x%02x"):format(
@@ -245,18 +244,31 @@ function Broker_RestFu:DrawTooltip()
 			local t = self.db.global[realm][char]
 			local RCC = RAID_CLASS_COLORS[t.localclass]
 			local classColor = string_format("%02x%02x%02x", RCC.r * 255, RCC.g * 255, RCC.b * 255)
+
 			local lastPlayed
 			if t.lastPlayed then
 				lastPlayed = ("%s |cffffffffago|r"):format(abacus:FormatDurationCondensed(now - t.lastPlayed, true, true))
 			else
 				lastPlayed = "-"
 			end
+
 			local factionText = ""
 			if t.faction == "Horde" then
 				factionText = " |cffcf0000(H)|r"
 			elseif t.faction == "Alliance" then
 				factionText = " |cff0000cf(A)|r"
 			end
+
+			local playedTime
+			if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
+				playedTime = self.timePlayed + time() - self.timePlayedMsgTime
+			else
+				playedTime = t.timePlayed or 0
+			end
+			totalTimePlayed = totalTimePlayed + playedTime
+
+			local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
+			local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
 
 			if t.level ~= maxLevel then
 				local r, g, b = crayon:GetThresholdColor(t.restXP / t.nextXP, 0, 0.5, 1, 1.25, 1.5)
@@ -270,36 +282,19 @@ function Broker_RestFu:DrawTooltip()
 				if not t.isResting then
 					timeToMax = timeToMax * 4
 				end
-				local playedTime
-				if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
-					playedTime = self.timePlayed + time() - self.timePlayedMsgTime
-				else
-					playedTime = t.timePlayed or 0
-				end
-				totalTimePlayed = totalTimePlayed + playedTime
-				local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
-				local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
 				tooltip:AddLine(
 					charInfo,
 					("|cff%s %s|r"):format(NFC, playedTimeText),
 					lastPlayed,
 					timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
 					("%.0f%%"):format(t.currXP / t.nextXP * 100),
-					("|cff%02x%02x%02x(%+.0f%%)|r"):format(r*255, g*255, b*255, t.restXP / t.nextXP * 100),
+					("|cff%02x%02x%02x(%+.0f%%)|r"):format(r * 255, g * 255, b * 255, t.restXP / t.nextXP * 100),
 					("|cffffffff%s|r"):format(t.zone or "Unknown")
 				)
 			else
-				local timePlayed
-				if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
-					playedTime = self.timePlayed + time() - self.timePlayedMsgTime
-				else
-					playedTime = t.timePlayed or 0
-				end
-				totalTimePlayed = totalTimePlayed + playedTime
-				local charInfo = ("|cff%s|cff%s%s|r [|cffffffff%d|r]%s|r"):format(NFC, classColor, char, t.level or 0, factionText)
 				tooltip:AddLine(
 					charInfo,
-					("|cff%s%s|r"):format(NFC, abacus:FormatDurationCondensed(playedTime, true, true)),
+					("|cff%s%s|r"):format(NFC, playedTimeText),
 					lastPlayed,
 					nil,
 					nil,
