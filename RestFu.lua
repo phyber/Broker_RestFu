@@ -12,7 +12,6 @@ local icon = LibStub("LibDBIcon-1.0")
 local time = time
 local pairs = pairs
 local ipairs = ipairs
-local string_format = string.format
 local table_sort = table.sort
 local GetRealmName = GetRealmName
 local GetRealZoneText = GetRealZoneText
@@ -51,11 +50,6 @@ local function GetOptions(uiType, uiName, appName)
 		local options = {
 			type = "group",
 			name = GetAddOnMetadata("Broker_RestFu", "Title"),
-			get = function(info) return db[info[#info]] end,
-			set = function(info, value)
-				db[info[#info]] = value
-				Broker_RestFu:UpdateData()
-			end,
 			args = {
 				brfudesc = {
 					type = "description",
@@ -421,7 +415,7 @@ function Broker_RestFu:DrawTooltip()
 					self:UpdateRestXPData(realm, char)
 					local t = self.db.global[realm][char]
 					local RCC = RAID_CLASS_COLORS[t.localclass]
-					local classColor = string_format("%02x%02x%02x", RCC.r * 255, RCC.g * 255, RCC.b * 255)
+					local classColor = ("%02x%02x%02x"):format(RCC.r * 255, RCC.g * 255, RCC.b * 255)
 
 					local lastPlayed
 					if t.lastPlayed then
