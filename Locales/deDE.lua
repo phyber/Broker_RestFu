@@ -3,7 +3,7 @@ if not L then return end
 
 -- Tooltip 
 L["Time Played"] = "Spielzeit"
-L["Last Played"] = 
+--L["Last Played"] = "Last Played"
 L["Time to Rest"] = "\195\156brige Erholungszeit"
 L["Current XP"] = "Aktuelle EP"
 L["Rest XP"] = "Erholungs-EP"
@@ -11,7 +11,7 @@ L["Zone"] = "Zone"
 L["Fully rested"] = "vollst\195\164ndig erholt"
 L["Unknown"] = "Unbekannt"
 L["Total time played"] = "Gesamte Spielzeit"
-L["ago"] = "ago"
+--L["ago"] = "ago"
 
 -- Settings
 L["Filter"] = "Filter"
