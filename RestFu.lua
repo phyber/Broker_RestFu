@@ -320,14 +320,16 @@ function Broker_RestFu:TIME_PLAYED_MSG(event, totaltime, leveltime)
 	self:Save()
 end
 
+local FILTER_REALM = 1
+local FILTER_CHAR = 2
 function Broker_RestFu:IsFiltered(type, realm, char)
-	if type == "realm" then
+	if type == FILTER_REALM then
 		if self.db.profile.filter.realm[realm] then
 			return true
 		end
 		return false
 	end
-	if type == "character" then
+	if type == FILTER_CHAR then
 		if self.db.profile.filter.char[realm] then
 			if self.db.profile.filter.char[realm][char] then
 				return true
@@ -407,7 +409,7 @@ function Broker_RestFu:DrawTooltip()
 	end
 
 	for realmCount, realm in ipairs(realms) do
-		if not self:IsFiltered("realm", realm) then
+		if not self:IsFiltered(FILTER_REALM, realm) then
 			-- Ensure there is a blank line between each realm
 			if realmCount ~= 1 then
 				tooltip:AddLine(" ")
@@ -415,7 +417,7 @@ function Broker_RestFu:DrawTooltip()
 			tooltip:AddHeader(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
 
 			for _, char in ipairs(chars[realm]) do
-				if not self:IsFiltered("character", realm, char) then
+				if not self:IsFiltered(FILTER_CHAR, realm, char) then
 					self:UpdateRestXPData(realm, char)
 					local t = self.db.global[realm][char]
 					local RCC = RAID_CLASS_COLORS[t.localclass]
