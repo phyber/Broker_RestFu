@@ -1,6 +1,6 @@
 local LDB = LibStub:GetLibrary("LibDataBroker-1.1")
 local LQT = LibStub("LibQTip-1.0")
---local L = LibStub("AceLocale-3.0"):GetLocale("Broker_RestFu")
+local L = LibStub("AceLocale-3.0"):GetLocale("Broker_RestFu")
 local abacus = LibStub("LibAbacus-3.0")
 local crayon = LibStub("LibCrayon-3.0")
 local dataobj = LDB:NewDataObject("Broker_RestFu", {
@@ -63,8 +63,8 @@ local function GetOptions(uiType, uiName, appName)
 					name = GetAddOnMetadata("Broker_RestFu", "Notes"),
 				},
 				minimap = {
-					name = "Minimap Icon",
-					desc = "Toggle minimap icon",
+					name = L["Minimap Icon"],
+					desc = L["Toggle minimap icon"],
 					type = "toggle",
 					order = 10,
 					get = function() return not db.minimap.hide end,
@@ -85,7 +85,7 @@ local function GetOptions(uiType, uiName, appName)
 	if appName == "Broker_RestFu-Filter" then
 		local options = {
 			type = "group",
-			name = "Filter",
+			name = L["Filter"],
 			args = {
 				brfufdesc = {
 					type = "description",
@@ -121,8 +121,8 @@ local function GetOptions(uiType, uiName, appName)
 		local optOrder = 200
 		for realm, _ in pairs(Broker_RestFu.db.global) do
 			options.args["filterchar"..realm] = {
-				name = "Filter Character from "..realm,
-				desc = "Select a character to filter",
+				name = (L["Filter Character from %s"]):format(realm),
+				desc = L["Select a character to filter"],
 				type = "multiselect",
 				order = optOrder,
 				values = function()
@@ -165,21 +165,21 @@ local function GetOptions(uiType, uiName, appName)
 	if appName == "Broker_RestFu-Purge" then
 		local options = {
 			type = "group",
-			name = "Purge",
+			name = L["Purge"],
 			args = {
 				brfupdesc = {
 					type = "description",
 					order = 0,
-					name = "Purge characters or realms",
+					name = L["Purge characters or realms"],
 				},
 				purgerealm = {
-					name = "Purge Realm",
-					desc = "Select a realm to purge",
+					name = L["Purge Realm"],
+					desc = L["Select a realm to purge"],
 					type = "select",
 					style = "radio",
 					order = 100,
 					confirm = function(info, value)
-						return ("Are you sure you wish to delete '%s'?"):format(value)
+						return (L["Are you sure you wish to delete '%s'?"]):format(value)
 					end,
 					values = function()
 						local t = {}
@@ -199,13 +199,13 @@ local function GetOptions(uiType, uiName, appName)
 		local optOrder = 200
 		for realm, _ in pairs(Broker_RestFu.db.global) do
 			options.args["purgechar"..realm] = {
-				name = "Purge Character from "..realm,
-				desc = "Select a character to purge",
+				name = (L["Purge Character from %s"]):format(realm),
+				desc = L["Select a character to purge"],
 				type = "select",
 				style = "radio",
 				order = optOrder,
 				confirm = function(info, value)
-					return ("Are you sure you wish to delete '%s'?"):format(value)
+					return (L["Are you sure you wish to delete '%s'?"]):format(value)
 				end,
 				values = function()
 					local t = {}
@@ -246,8 +246,8 @@ function Broker_RestFu:OnInitialize()
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Filter", GetOptions)
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Purge", GetOptions)
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Filter", "Filter", GetAddOnMetadata("Broker_RestFu", "Title"))
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Purge", "Purge", GetAddOnMetadata("Broker_RestFu", "Title"))
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Filter", L["Filter"], GetAddOnMetadata("Broker_RestFu", "Title"))
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Purge", L["Purge"], GetAddOnMetadata("Broker_RestFu", "Title"))
 end
 
 function Broker_RestFu:OnEnable()

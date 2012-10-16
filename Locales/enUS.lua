@@ -15,5 +15,17 @@ L["%s |cffffffffago|r"] = true
 
 -- Settings
 L["Filter"] = true
+L["Filter specific characters or realms to hide them from the tooltip."] = true
+L["Filter Realm"] = true
+L["Select a realm to filter"] = true
+L["Filter Character from %s"] = true
+L["Select a character to filter"] = true
 L["Purge"] = true
-L["Purge Characters"] = true
+L["Purge characters or realms"] = true
+L["Purge Realm"] = true
+L["Select a realm to purge"] = true
+L["Are you sure you wish to delete '%s'?"] = true
+L["Purge Character from %s"] = true
+L["Select a character to purge"] = true
+L["Minimap Icon"] = true
+L["Toggle minimap icon"] = true
