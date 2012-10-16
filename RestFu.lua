@@ -414,7 +414,7 @@ function Broker_RestFu:DrawTooltip()
 			if realmCount ~= 1 then
 				tooltip:AddLine(" ")
 			end
-			tooltip:AddHeader(realm, "Time Played", "Last Played", "Time to Rest", "Current XP", "Rest XP", "Zone")
+			tooltip:AddHeader(realm, L["Time Played"], L["Last Played"], L["Time to Rest"], L["Current XP"], L["Rest XP"], L["Zone"])
 
 			for _, char in ipairs(chars[realm]) do
 				if not self:IsFiltered(FILTER_CHAR, realm, char) then
@@ -425,7 +425,10 @@ function Broker_RestFu:DrawTooltip()
 
 					local lastPlayed
 					if t.lastPlayed then
-						lastPlayed = ("%s |cffffffffago|r"):format(abacus:FormatDurationCondensed(now - t.lastPlayed, true, true))
+						lastPlayed = ("%s |cffffffff%s|r"):format(
+							abacus:FormatDurationCondensed(now - t.lastPlayed, true, true),
+							L["ago"]
+						)
 					else
 						lastPlayed = "-"
 					end
@@ -464,10 +467,10 @@ function Broker_RestFu:DrawTooltip()
 							charInfo,
 							playedTimeText,
 							lastPlayed,
-							timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format("Fully rested"),
+							timeToMax > 0 and abacus:FormatDurationCondensed(timeToMax, true, true) or ("|cff00ff00%s|r"):format(L["Fully rested"]),
 							("%.0f%%"):format(t.currXP / t.nextXP * 100),
 							("|cff%02x%02x%02x(%+.0f%%)|r"):format(r * 255, g * 255, b * 255, t.restXP / t.nextXP * 100),
-							("|cffffffff%s|r"):format(t.zone or "Unknown")
+							("|cffffffff%s|r"):format(t.zone or L["Unknown"])
 						)
 					else
 						tooltip:AddLine(
@@ -477,7 +480,7 @@ function Broker_RestFu:DrawTooltip()
 							nil,
 							nil,
 							nil,
-							("|cffffffff%s|r"):format(t.zone or "Unknown")
+							("|cffffffff%s|r"):format(t.zone or L["Unknown"])
 						)
 					end
 				end
@@ -487,7 +490,7 @@ function Broker_RestFu:DrawTooltip()
 
 	tooltip:AddLine(" ")
 	tooltip:AddLine(
-		("|cffffffff%s|r"):format("Total time played"),
+		("|cffffffff%s|r"):format(L["Total time played"]),
 		nil, nil, nil, nil, nil,
 		abacus:FormatDurationExtended(totalTimePlayed, true, true)
 	)
