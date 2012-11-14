@@ -414,8 +414,7 @@ function Broker_RestFu:DrawTooltip()
 				if not self:IsFiltered(FILTER_CHAR, realm, char) then
 					self:UpdateRestXPData(realm, char)
 					local t = self.db.global[realm][char]
-					local RCC = RAID_CLASS_COLORS[t.localclass]
-					local classColor = ("%02x%02x%02x"):format(RCC.r * 255, RCC.g * 255, RCC.b * 255)
+					local classColor = RAID_CLASS_COLORS[t.localclass].colorStr
 
 					local lastPlayed
 					if t.lastPlayed then
@@ -442,7 +441,7 @@ function Broker_RestFu:DrawTooltip()
 					end
 					totalTimePlayed = totalTimePlayed + playedTime
 
-					local charInfo = ("|cff%s%s|r [|cffffffff%d|r]%s"):format(classColor, char, t.level or 0, factionText)
+					local charInfo = ("|c%s%s|r [|cffffffff%d|r]%s"):format(classColor, char, t.level or 0, factionText)
 					local playedTimeText = abacus:FormatDurationCondensed(playedTime, true, true)
 
 					if t.level ~= maxLevel then
