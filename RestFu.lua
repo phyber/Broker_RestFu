@@ -23,6 +23,7 @@ local UnitClass = UnitClass
 local UnitLevel = UnitLevel
 local UnixXPMax = UnitXPMax
 local UnitFactionGroup = UnitFactionGroup
+local GUILD_ONLINE_LABEL = GUILD_ONLINE_LABEL
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local maxLevel = MAX_PLAYER_LEVEL_TABLE[GetAccountExpansionLevel()]
 local timerSched = {}
@@ -381,6 +382,8 @@ function Broker_RestFu:DrawTooltip()
 
 	local now = time()
 	local totalTimePlayed = 0
+	local currentRealm = GetRealmName()
+	local currentChar = UnitName("player")
 
 	-- Header
 	tooltip:AddHeader(nil, nil, nil, GetAddOnMetadata("Broker_RestFu", "Title"))
@@ -417,7 +420,9 @@ function Broker_RestFu:DrawTooltip()
 					local classColor = RAID_CLASS_COLORS[t.localclass].colorStr
 
 					local lastPlayed
-					if t.lastPlayed then
+					if realm == currentRealm and char == currentChar then
+						lastPlayed = ("|cff00ff00%s|r"):format(GUILD_ONLINE_LABEL)
+					elseif t.lastPlayed then
 						lastPlayed = ("%s |cffffffff%s|r"):format(
 							abacus:FormatDurationCondensed(now - t.lastPlayed, true, true),
 							L["ago"]
@@ -434,7 +439,7 @@ function Broker_RestFu:DrawTooltip()
 					end
 
 					local playedTime
-					if realm == GetRealmName() and char == UnitName("player") and self.timePlayed then
+					if realm == currentRealm and char == currentChar and self.timePlayed then
 						playedTime = self.timePlayed + time() - self.timePlayedMsgTime
 					else
 						playedTime = t.timePlayed or 0
