@@ -516,10 +516,11 @@ function dataobj:OnEnter()
 	Broker_RestFu:DrawTooltip()
 end
 
-function dataobj:OnLeave()
-	LQT:Release(tooltip)
-	tooltip = nil
-end
+-- Handled by the AutoHide
+--function dataobj:OnLeave()
+--	LQT:Release(tooltip)
+--	tooltip = nil
+--end
 
 function dataobj:OnClick(button)
 	if button == "RightButton" then
