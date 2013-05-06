@@ -246,10 +246,13 @@ function Broker_RestFu:OnInitialize()
 end
 
 function Broker_RestFu:OnEnable()
+	self:RegisterEvent("PLAYER_REGEN_ENABLED", "Save")
 	self:RegisterEvent("PLAYER_UPDATE_RESTING", "Save")
 	self:RegisterEvent("PLAYER_XP_UPDATE", "Save")
-	self:RegisterEvent("PLAYER_REGEN_ENABLED", "Save")
 	self:RegisterEvent("TIME_PLAYED_MSG")
+	self:RegisterEvent("ZONE_CHANGED", "Save")
+	self:RegisterEvent("ZONE_CHANGED_INDOORS", "Save")
+	self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "Save")
 
 	timerSched.TimePlayed = self:ScheduleRepeatingTimer("OnUpdate_TimePlayed", 1)
 
