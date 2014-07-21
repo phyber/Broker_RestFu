@@ -17,6 +17,7 @@ local GetRealmName = GetRealmName
 local GetRealZoneText = GetRealZoneText
 local GetXPExhaustion = GetXPExhaustion
 local GetAddOnMetadata = GetAddOnMetadata
+local InCombatLockdown = InCombatLockdown
 local IsResting = IsResting
 local UnitXP = UnitXP
 local UnitClass = UnitClass
@@ -369,6 +370,11 @@ end
 local realms
 local chars
 function Broker_RestFu:DrawTooltip()
+	-- Don't show if we're in combat.
+	if InCombatLockdown() then
+		return
+	end
+
 	tooltip:Hide()
 	tooltip:Clear()
 
