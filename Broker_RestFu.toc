@@ -1,4 +1,4 @@
-## Interface: 50400
+## Interface: 60000
 ## Title: Broker: RestFu
 ## Notes: Keeps track of time played and rested XP across your characters.
 ## Notes-zhTW: 可顯示目前伺服器上所有角色休息(兩倍經驗值)狀態、下線地點與剩餘休息時間等。
