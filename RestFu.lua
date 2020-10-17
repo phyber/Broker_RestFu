@@ -26,7 +26,7 @@ local UnixXPMax = UnitXPMax
 local UnitFactionGroup = UnitFactionGroup
 local GUILD_ONLINE_LABEL = GUILD_ONLINE_LABEL
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
-local maxLevel = MAX_PLAYER_LEVEL_TABLE[GetAccountExpansionLevel()]
+local maxLevel = GetMaxLevelForPlayerExpansion()
 local timerSched = {}
 local purged = false
 
