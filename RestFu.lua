@@ -3,35 +3,43 @@ local LQT = LibStub("LibQTip-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("Broker_RestFu")
 local abacus = LibStub("LibAbacus-3.0")
 local crayon = LibStub("LibCrayon-3.0")
+local icon = LibStub("LibDBIcon-1.0")
 local dataobj = LDB:NewDataObject("Broker_RestFu", {
 	type = "data source",
 	text = "RestFu",
 	icon = "Interface\\AddOns\\Broker_RestFu\\icon.tga",
 })
-local icon = LibStub("LibDBIcon-1.0")
+
 local time = time
 local pairs = pairs
 local ipairs = ipairs
 local table_sort = table.sort
+local GetAddOnMetadata = _G.GetAddOnMetadata or C_AddOns.GetAddOnMetadata
 local GetRealmName = GetRealmName
 local GetRealZoneText = GetRealZoneText
 local GetXPExhaustion = GetXPExhaustion
-local GetAddOnMetadata = GetAddOnMetadata
 local InCombatLockdown = InCombatLockdown
 local IsResting = IsResting
-local UnitXP = UnitXP
+local RequestTimePlayed = RequestTimePlayed
 local UnitClass = UnitClass
-local UnitLevel = UnitLevel
-local UnixXPMax = UnitXPMax
 local UnitFactionGroup = UnitFactionGroup
+local UnitLevel = UnitLevel
+local UnitName = UnitName
+local UnitRace = UnitRace
+local UnitXP = UnitXP
+local UnitXPMax = UnitXPMax
 local GUILD_ONLINE_LABEL = GUILD_ONLINE_LABEL
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local maxLevel = GetMaxLevelForPlayerExpansion()
 local timerSched = {}
 local purged = false
+local addonOptionsFrameName
+
+local ADDON_NOTES = GetAddOnMetadata("Broker_RestFu", "Notes")
+local ADDON_TITLE = GetAddOnMetadata("Broker_RestFu", "Title")
 
 Broker_RestFu = LibStub("AceAddon-3.0"):NewAddon("Broker_RestFu", "AceEvent-3.0", "AceTimer-3.0")
-local self, Broker_RestFu = Broker_RestFu, Broker_RestFu
+local Broker_RestFu = Broker_RestFu
 local db
 local tooltip
 local defaults = {
@@ -51,21 +59,24 @@ local function GetOptions(uiType, uiName, appName)
 	if appName == "Broker_RestFu-General" then
 		local options = {
 			type = "group",
-			name = GetAddOnMetadata("Broker_RestFu", "Title"),
+			name = ADDON_TITLE,
 			args = {
 				brfudesc = {
 					type = "description",
 					order = 0,
-					name = GetAddOnMetadata("Broker_RestFu", "Notes"),
+					name = ADDON_NOTES,
 				},
 				minimap = {
 					name = L["Minimap Icon"],
 					desc = L["Toggle minimap icon"],
 					type = "toggle",
 					order = 10,
-					get = function() return not db.minimap.hide end,
+					get = function()
+                        return not db.minimap.hide
+                    end,
 					set = function()
 						db.minimap.hide = not db.minimap.hide
+
 						if db.minimap.hide then
 							icon:Hide("Broker_RestFu")
 						else
@@ -95,9 +106,11 @@ local function GetOptions(uiType, uiName, appName)
 					order = 50,
 					values = function()
 						local t = {}
+
 						for realm, _ in pairs(Broker_RestFu.db.global) do
 							t[realm] = realm
 						end
+
 						return t
 					end,
 					get = function(info, value)
@@ -123,38 +136,46 @@ local function GetOptions(uiType, uiName, appName)
 				order = optOrder,
 				values = function()
 					local t = {}
+
 					for char, _ in pairs(Broker_RestFu.db.global[realm]) do
 						t[char] = char
 					end
+
 					return t
 				end,
 				get = function(info, value)
 					if not db.filter.char[realm] then
 						return false
 					end
+
 					return db.filter.char[realm][value] and true or false
 				end,
 				set = function(info, value)
 					if not db.filter.char[realm] then
 						db.filter.char[realm] = {}
 					end
+
 					if db.filter.char[realm][value] then
 						db.filter.char[realm][value] = nil
 					else
 						db.filter.char[realm][value] = true
 					end
+
 					-- Check if we also need to purge the realm
 					local count = 0
 					for _ in pairs(db.filter.char[realm]) do
 						count = count + 1
 					end
+
 					if count == 0 then
 						db.filter.char[realm] = nil
 					end
 				end,
 			}
+
 			optOrder = optOrder + 5
 		end
+
 		return options
 	end
 
@@ -179,9 +200,11 @@ local function GetOptions(uiType, uiName, appName)
 					end,
 					values = function()
 						local t = {}
+
 						for realm, _ in pairs(Broker_RestFu.db.global) do
 							t[realm] = realm
 						end
+
 						return t
 					end,
 					set = function(info, value)
@@ -205,24 +228,30 @@ local function GetOptions(uiType, uiName, appName)
 				end,
 				values = function()
 					local t = {}
+
 					for char, _ in pairs(Broker_RestFu.db.global[realm]) do
 						t[char] = char
 					end
+
 					return t
 				end,
 				set = function(info, value)
 					Broker_RestFu.db.global[realm][value] = nil
+
 					-- Check if we also need to purge the realm
 					local count = 0
 					for _ in pairs(Broker_RestFu.db.global[realm]) do
 						count = count + 1
 					end
+
 					if count == 0 then
 						Broker_RestFu.db.global[realm] = nil
 					end
+
 					purged = true
 				end,
 			}
+
 			optOrder = optOrder + 5
 		end
 
@@ -230,7 +259,16 @@ local function GetOptions(uiType, uiName, appName)
 	end
 end
 
+local function OpenOptions()
+    if Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory(addonOptionsFrameName)
+    else
+		InterfaceOptionsFrame_OpenToCategory(addonOptionsFrameName)
+    end
+end
+
 function Broker_RestFu:OnInitialize()
+    local _
 	self.db = LibStub("AceDB-3.0"):New("Broker_RestFuDB", defaults, true)
 	db = self.db.profile
 
@@ -241,9 +279,10 @@ function Broker_RestFu:OnInitialize()
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-General", GetOptions)
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Filter", GetOptions)
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Broker_RestFu-Purge", GetOptions)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", GetAddOnMetadata("Broker_RestFu", "Title"))
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Filter", L["Filter"], GetAddOnMetadata("Broker_RestFu", "Title"))
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Purge", L["Purge"], GetAddOnMetadata("Broker_RestFu", "Title"))
+
+	_, addonOptionsFrameName = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-General", ADDON_TITLE)
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Filter", L["Filter"], ADDON_TITLE)
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker_RestFu-Purge", L["Purge"], ADDON_TITLE)
 end
 
 function Broker_RestFu:OnEnable()
@@ -262,21 +301,26 @@ end
 
 function Broker_RestFu:Save()
 	local zone = GetRealZoneText()
+
 	if zone == nil or zone == "" then
 		self:ScheduleTimer("Save", 5)
 	elseif UnitLevel("player") ~= 0 then
 		local char = UnitName("player")
 		local realm = GetRealmName()
+
 		-- Create tables for realms and characters if they don't
 		-- exist yet.
 		if not self.db.global[realm] then
 			self.db.global[realm] = {}
 		end
+
 		if not self.db.global[realm][char] then
 			self.db.global[realm][char] = {}
 		end
+
 		local t = self.db.global[realm][char]
 		local _
+
 		t.level = UnitLevel("player")
 		t.currXP = UnitXP("player")
 		t.nextXP = UnitXPMax("player")
@@ -305,6 +349,7 @@ function Broker_RestFu:OnUpdate_TimePlayed()
 			timerSched.TimePlayed = nil
 		end
 	end
+
 	RequestTimePlayed()
 end
 
@@ -314,6 +359,7 @@ function Broker_RestFu:TIME_PLAYED_MSG(event, totaltime, leveltime)
 			timerSched.TimePlayed = nil
 		end
 	end
+
 	self.timePlayed = totaltime
 	self.timePlayedMsgTime = time()
 	self:Save()
@@ -326,16 +372,20 @@ function Broker_RestFu:IsFiltered(type, realm, char)
 		if self.db.profile.filter.realm[realm] then
 			return true
 		end
+
 		return false
 	end
+
 	if type == FILTER_CHAR then
 		if self.db.profile.filter.char[realm] then
 			if self.db.profile.filter.char[realm][char] then
 				return true
 			end
 		end
+
 		return false
 	end
+
 	return false
 end
 
@@ -345,22 +395,28 @@ function Broker_RestFu:UpdateRestXPData(realm, char)
 	if not realm or not char then
 		return
 	end
+
 	local now = time()
 	local t = self.db.global[realm][char]
 	local multiplier = 1.5
 	local PPS = percentPerSecond
+
 	if t.localrace == "Pandaren" then
 		PPS = pandaPercentPerSecond
 		multiplier = 3
 	end
+
 	if t.level ~= maxLevel and t.restXP < t.nextXP * multiplier then
 		local seconds = now - t.time
 		local gained = t.nextXP * PPS * seconds
+
 		if not t.isResting then
 			gained = gained / 4
 		end
+
 		t.time = now
 		t.restXP = t.restXP + gained
+
 		if t.restXP > t.nextXP * multiplier then
 			t.restXP = t.nextXP * multiplier
 		end
@@ -379,14 +435,17 @@ function Broker_RestFu:DrawTooltip()
 	tooltip:Clear()
 
 	local myFont
+
 	if not Broker_RestFu_Tooltip_Font then
 		myFont = CreateFont("Broker_RestFu_Tooltip_Font")
+
 		local filename, size, flags = tooltip:GetFont():GetFont()
 		myFont:SetFont(filename, size, flags)
 		myFont:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 	else
 		myFont = Broker_RestFu_Tooltip_Font
 	end
+
 	tooltip:SetFont(myFont)
 
 	local now = time()
@@ -395,7 +454,7 @@ function Broker_RestFu:DrawTooltip()
 	local currentChar = UnitName("player")
 
 	-- Header
-	tooltip:AddHeader(nil, nil, nil, GetAddOnMetadata("Broker_RestFu", "Title"))
+	tooltip:AddHeader(nil, nil, nil, ADDON_TITLE)
 	tooltip:AddLine(" ")
 
 	-- Generate a list of realms and chars the first time we build the tooltip
@@ -403,14 +462,18 @@ function Broker_RestFu:DrawTooltip()
 		purged = false
 		realms = {}
 		chars = {}
+
 		for realm, _ in pairs(self.db.global) do
 			realms[#realms + 1] = realm
 			chars[realm] = {}
+
 			for char, _ in pairs(self.db.global[realm]) do
 				chars[realm][#chars[realm] + 1] = char
 			end
+
 			table_sort(chars[realm])
 		end
+
 		table_sort(realms)
 	end
 
@@ -420,7 +483,16 @@ function Broker_RestFu:DrawTooltip()
 			if realmCount ~= 1 then
 				tooltip:AddLine(" ")
 			end
-			tooltip:AddHeader(realm, L["Time Played"], L["Last Played"], L["Time to Rest"], L["Current XP"], L["Rest XP"], L["Zone"])
+
+			tooltip:AddHeader(
+                realm,
+                L["Time Played"],
+                L["Last Played"],
+                L["Time to Rest"],
+                L["Current XP"],
+                L["Rest XP"],
+                L["Zone"]
+            )
 
 			for _, char in ipairs(chars[realm]) do
 				if not self:IsFiltered(FILTER_CHAR, realm, char) then
@@ -461,15 +533,18 @@ function Broker_RestFu:DrawTooltip()
 					if t.level ~= maxLevel then
 						local r, g, b = crayon:GetThresholdColor(t.restXP / t.nextXP, 0, 0.5, 1, 1.25, 1.5)
 						local timePassed
+
 						if t.localrace == "Pandaren" then
 							timePassed = t.restXP / t.nextXP / pandaPercentPerSecond
 						else
 							timePassed = t.restXP / t.nextXP / percentPerSecond
 						end
+
 						local timeToMax = 864000 - timePassed
 						if not t.isResting then
 							timeToMax = timeToMax * 4
 						end
+
 						tooltip:AddLine(
 							charInfo,
 							playedTimeText,
@@ -517,6 +592,7 @@ function dataobj:OnEnter()
 			"LEFT", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "RIGHT"
 		)
 	end
+
 	tooltip:Clear()
 	tooltip:SmartAnchorTo(self)
 	tooltip:SetAutoHideDelay(0.25, self)
@@ -533,6 +609,6 @@ end
 
 function dataobj:OnClick(button)
 	if button == "RightButton" then
-		InterfaceOptionsFrame_OpenToCategory(GetAddOnMetadata("Broker_RestFu", "Title"))
+        OpenOptions()
 	end
 end
